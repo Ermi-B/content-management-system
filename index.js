@@ -219,6 +219,74 @@ const r = inquirer
             });
             break;
             
-            
+            case "update an employee role":
+                // Fetch the employee data from the database
+                db.query("SELECT * FROM employee", (err, results) => {
+                  if (err) {
+                    console.error(err);
+                    return;
+                  }
+                  const employeesData = results.map((employee) => {
+                    return {
+                      name: `${employee.first_name} ${employee.last_name}`,
+                      id: employee.id,
+                    };
+                  });
+                  const employeeNamesArray = employeesData.map((employee) => employee.name);
+              
+                  db.query("SELECT * FROM role", (err, results) => {
+                    if (err) {
+                      console.error(err);
+                      return;
+                    }
+                    const rolesData = results.map((role) => {
+                      return {
+                        title: role.title,
+                        id: role.id,
+                      };
+                    });
+                    const roleTitlesArray = rolesData.map((role) => role.title);
+              
+                    inquirer
+                      .prompt([
+                        {
+                          name: "employeeToUpdate",
+                          type: "list",
+                          message: "Select the employee to update:",
+                          choices: employeeNamesArray,
+                        },
+                        {
+                          name: "newRole",
+                          type: "list",
+                          message: "Select the new role:",
+                          choices: roleTitlesArray,
+                        },
+                      ])
+                      .then((nestedPromptAns) => {
+                        const employee = employeesData.find(
+                          (emp) => emp.name === nestedPromptAns.employeeToUpdate
+                        ); // Find the employee object based on the selected employee name
+                        const role = rolesData.find(
+                          (role) => role.title === nestedPromptAns.newRole
+                        ); // Find the role object based on the selected role title
+              
+                        db.query(
+                          "UPDATE employee SET role_id = ? WHERE id = ?",
+                          [role.id, employee.id],
+                          (err, result) => {
+                            if (err) {
+                              console.error(err);
+                            } else {
+                              console.log(
+                                `Employee role updated successfully for ${nestedPromptAns.employeeToUpdate}`
+                              );
+                            }
+                          }
+                        );
+                      });
+                  });
+                });
+                break;
+                 
     }
   });
