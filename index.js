@@ -47,8 +47,8 @@ const r = inquirer
           console.table(results)
         );
         break;
-      case "add a department":  
-        inquirer    //nested prompt
+      case "add a department":
+        inquirer //nested prompt
           .prompt([
             {
               name: "deptName",
@@ -87,7 +87,7 @@ const r = inquirer
           const departmentNamesArray = departmentsData.map((dept) => dept.name);
           console.log(departmentNamesArray);
 
-          inquirer   //nested prompt
+          inquirer //nested prompt
             .prompt([
               {
                 name: "roleName",
@@ -112,7 +112,7 @@ const r = inquirer
                   return true;
                 }
               }); //searches the returned object from to databse for matching department name to get its ID
-              
+
               db.query(
                 "INSERT INTO role(title,salary,department_id) VALUES (?,?,?)",
                 [
@@ -136,73 +136,89 @@ const r = inquirer
         break;
 
         case "add an employee":
-        db.query("SELECT * from role", (err, results) => {
-          if (err) {
-            console.error(err);
-          }
-          const roleData = results.map((role) => {  //getting the role id and title to assign it to the new employee
-            return {
-              title: role.title,
-              id: role.id,
-            };
-          });
-          console.log(roleData);
-          const roletitleArray = roleData.map((role) => role.title);
-          console.log(roletitleArray);
-
-          inquirer   //nested prompt
-            .prompt([
-              {
-                name: "employeeFirstName",
-                type: "input",
-                message: "What is the employee's first Name?",
-              },
-              {
-                name: "employeeLastName",
-                type: "input",
-                message: "What is the employee's last Name?",
-              },
-              {
-                name: "employeeRole",
-                type: "list",
-                message: "What is the employee's role?",
-                choices:roletitleArray
-              },
-              {
-                name: "employeeManager",
-                type: "list",
-                message: "Who is the employee's manager?",
-                choices: [1,2,3,4],
-              },
-            ])
-            .then((nestedPromptAns) => {
-              const role = roleData.find((role) => {
-                if (role.title === nestedPromptAns.employeeRole) {
-                  return true;
+            db.query("SELECT * FROM role", (err, results) => {
+              if (err) {
+                console.error(err);
+                return;
+              }
+              const roleData = results.map((role) => {
+                return {
+                  title: role.title,
+                  id: role.id,
+                };
+              });
+              const roleTitleArray = roleData.map((role) => role.title);
+          
+              db.query("SELECT * FROM manager", (err, results) => {
+                if (err) {
+                  console.error(err);
+                  return;
                 }
-              }); //searches the returned object from to databse for matching department name to get its ID
-              
-              db.query(
-                "INSERT INTO employee(first_name,last_Name,role_id) VALUES (?,?,?)",
-                [
-                  nestedPromptAns.employeeFirstName,
-                  nestedPromptAns.employeeLastName,
-                  role.id,
-                 
-                ],
-                (err, result) => {
-                  if (err) {
-                    console.error(err);
-                  } else {
-                    console.log(
-                      `${nestedPromptAns.employeeFirstName} was added successfully!`
+                const managersData = results.map((manager) => {
+                  return {
+                    name: manager.name,
+                    id: manager.id,
+                  };
+                });
+                const managerNamesArray = managersData.map((manager) => manager.name);
+          
+                inquirer
+                  .prompt([
+                    {
+                      name: "employeeFirstName",
+                      type: "input",
+                      message: "What is the employee's first name?",
+                    },
+                    {
+                      name: "employeeLastName",
+                      type: "input",
+                      message: "What is the employee's last name?",
+                    },
+                    {
+                      name: "employeeRole",
+                      type: "list",
+                      message: "What is the employee's role?",
+                      choices: roleTitleArray, // Array of role titles
+                    },
+                    {
+                      name: "employeeManager",
+                      type: "checkbox",
+                      message: "Who is the employee's manager?",
+                      choices: managerNamesArray, // Array of manager names
+                      default:null
+                    },
+                  ])
+                  .then((nestedPromptAns) => {
+                    const role = roleData.find(
+                      (role) => role.title === nestedPromptAns.employeeRole
+                    ); // Find the role object based on the selected role title
+                    const manager = managersData.find(
+                      (manager) => manager.name === nestedPromptAns.employeeManager
+                    ); // Find the manager object based on the selected manager name
+          
+                    db.query(
+                      "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
+                      [
+                        nestedPromptAns.employeeFirstName,
+                        nestedPromptAns.employeeLastName,
+                        role.id, // Use the role ID in the query
+                        manager ? manager.id : null, // Use the manager ID if selected, otherwise null
+                      ],
+                      (err, result) => {
+                        if (err) {
+                          console.error(err);
+                        } else {
+                          console.log(
+                            `${nestedPromptAns.employeeFirstName} was added successfully!`
+                          );
+                        }
+                      }
                     );
-                  }
-                }
-              );
+                  });
+              });
             });
-        });
-
-        break;
+            break;
+            
+            
     }
   });
